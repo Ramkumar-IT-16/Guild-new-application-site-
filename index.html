@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tvk Rowdy Guild</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(270deg, red, orange, yellow);
+      background-size: 600% 600%;
+      animation: bgMove 8s infinite alternate;
+      color: white;
+    }
+
+    @keyframes bgMove {
+      0% { background-position: left; }
+      100% { background-position: right; }
+    }
+
+    .container {
+      width: 350px;
+      background: rgba(0,0,0,0.6);
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 0 25px black;
+      text-align: center;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    h1 {
+      margin-bottom: 25px;
+      text-shadow: 0 0 15px black;
+    }
+
+    button {
+      width: 100%;
+      padding: 16px;
+      margin: 12px 0;
+      font-size: 18px;
+      background: black;
+      color: yellow;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 0.3s;
+      box-shadow: 0 0 10px orange;
+    }
+
+    button:hover {
+      background: yellow;
+      color: black;
+      box-shadow: 0 0 20px yellow, 0 0 40px orange;
+      transform: scale(1.05);
+    }
+
+    input, select {
+      width: 90%;
+      padding: 12px;
+      margin: 10px 0;
+      background: black;
+      border: 1px solid yellow;
+      color: white;
+      border-radius: 8px;
+      box-shadow: 0 0 5px orange;
+    }
+
+    .hidden { display: none; }
+
+    .box {
+      background: rgba(0,0,0,0.7);
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+      animation: fade 0.5s;
+    }
+
+    @keyframes fade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .success { color: lightgreen; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+
+<!-- 🔊 SOUND -->
+<audio id="clickSound" src="https://www.soundjay.com/buttons/sounds/button-16.mp3"></audio>
+
+<div class="container">
+
+<!-- HOME -->
+<div id="home">
+  <h1>🔥 Tvk Rowdy Guild</h1>
+  <button onclick="showPage('member')">➕ New Member</button>
+  <button onclick="showPage('adminLogin')">🔐 Admin Login</button>
+  <button onclick="showPage('statusPage')">📄 Application Status</button>
+</div>
+
+<!-- MEMBER -->
+<div id="member" class="hidden">
+  <h1>Join Guild</h1>
+
+  <input id="name" placeholder="Enter Name">
+  <input id="id" placeholder="Enter ID">
+
+  <button onclick="sendRequest()">Submit</button>
+  <p id="successMsg"></p>
+
+  <button onclick="goHome()">⬅ Back</button>
+</div>
+
+<!-- ADMIN LOGIN -->
+<div id="adminLogin" class="hidden">
+  <h1>Admin Login</h1>
+
+  <select id="adminId">
+    <option value="">Select Admin</option>
+    <option value="leader">Leader</option>
+    <option value="activeleader">Active Leader</option>
+    <option value="elder1">Elder 1</option>
+    <option value="elder2">Elder 2</option>
+    <option value="elder3">Elder 3</option>
+    <option value="elder4">Elder 4</option>
+    <option value="elder5">Elder 5</option>
+  </select>
+
+  <input id="adminPass" type="password" placeholder="Password">
+
+  <button onclick="login()">Login</button>
+  <button onclick="goHome()">⬅ Back</button>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="adminPanel" class="hidden">
+  <h1>👑 TVK ROWDYS ADMIN</h1>
+  <h3 id="adminName"></h3>
+
+  <h2>📥 Requests</h2>
+  <div id="requests"></div>
+
+  <h2>👑 Members</h2>
+  <div id="members"></div>
+
+  <button onclick="logout()">Logout</button>
+</div>
+
+<!-- STATUS -->
+<div id="statusPage" class="hidden">
+  <h1>Check Status</h1>
+
+  <input id="checkId" placeholder="Enter ID">
+  <button onclick="checkStatus()">Check</button>
+
+  <p id="statusResult"></p>
+
+  <button onclick="goHome()">⬅ Back</button>
+</div>
+
+</div>
+
+<script>
+
+// 🔊 AUTO SOUND FOR ALL BUTTONS
+document.addEventListener("click", function(e){
+  if(e.target.tagName === "BUTTON"){
+    document.getElementById("clickSound").play();
+  }
+});
+
+let requests = JSON.parse(localStorage.getItem("requests")) || [];
+let members = JSON.parse(localStorage.getItem("members")) || [];
+
+// PAGE SWITCH
+function showPage(p){
+  ["home","member","adminLogin","adminPanel","statusPage"].forEach(id=>{
+    document.getElementById(id).classList.add("hidden");
+  });
+  document.getElementById(p).classList.remove("hidden");
+}
+
+function goHome(){ showPage("home"); }
+
+// SEND REQUEST
+function sendRequest(){
+  const name=nameInput.value;
+  const id=idInput.value;
+
+  if(!name||!id){
+    successMsg.innerText="Enter details";
+    successMsg.className="error"; return;
+  }
+
+  if(requests.find(r=>r.id===id)||members.find(m=>m.id===id)){
+    successMsg.innerText="⚠️ ID already exists";
+    successMsg.className="error"; return;
+  }
+
+  requests.push({name,id});
+  save();
+
+  successMsg.innerText="✨ Request sent to admin!";
+  successMsg.className="success";
+
+  nameInput.value=""; idInput.value="";
+}
+
+// LOGIN
+function login(){
+  const id=adminId.value, pass=adminPass.value;
+
+  if(
+    (id==="leader"&&pass==="1606") ||
+    (id==="activeleader"&&pass==="1006") ||
+    (id==="elder1"&&pass==="1256") ||
+    (id==="elder2"&&pass==="3487") ||
+    (id==="elder3"&&pass==="6567") ||
+    (id==="elder4"&&pass==="7688") ||
+    (id==="elder5"&&pass==="3767")
+  ){
+    adminName.innerText="Logged in as "+id;
+    showPage("adminPanel");
+    render();
+  } else alert("Wrong login ❌");
+}
+
+function logout(){ goHome(); }
+
+// APPROVE / REJECT
+function approve(i){
+  members.push(requests[i]);
+  requests.splice(i,1);
+  save(); render();
+}
+
+function reject(i){
+  requests.splice(i,1);
+  save(); render();
+}
+
+// SAVE
+function save(){
+  localStorage.setItem("requests",JSON.stringify(requests));
+  localStorage.setItem("members",JSON.stringify(members));
+}
+
+// RENDER
+function render(){
+  document.getElementById("requests").innerHTML="";
+  requests.forEach((r,i)=>{
+    document.getElementById("requests").innerHTML+=`
+    <div class="box">
+      ${r.name} (${r.id})
+      <button onclick="approve(${i})">Approve</button>
+      <button onclick="reject(${i})">Reject</button>
+    </div>`;
+  });
+
+  document.getElementById("members").innerHTML="";
+  members.forEach(m=>{
+    document.getElementById("members").innerHTML+=`
+    <div class="box">${m.name} (${m.id})</div>`;
+  });
+}
+
+// STATUS
+function checkStatus(){
+  const id=checkId.value;
+
+  if(members.find(m=>m.id===id)){
+    statusResult.innerText="✅ Approved";
+    statusResult.style.color="lightgreen";
+  }
+  else if(requests.find(r=>r.id===id)){
+    statusResult.innerText="⏳ Pending";
+    statusResult.style.color="yellow";
+  }
+  else{
+    statusResult.innerText="❌ Not Found";
+    statusResult.style.color="red";
+  }
+}
+
+</script>
+
+</body>
+</html>
